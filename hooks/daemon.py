@@ -483,11 +483,17 @@ class _Handler(BaseHTTPRequestHandler):
 
 
 def _write_state(port, token):
+    # daemon.state holds the auth token (a credential), so create it owner-only
+    # (0o600) and atomically truncate. On POSIX this keeps the token unreadable
+    # by other local users; on Windows the mode bits are a best-effort no-op but
+    # the file already lives under the user profile.
     STATE_FILE.parent.mkdir(parents=True, exist_ok=True)
-    STATE_FILE.write_text(
-        json.dumps({"pid": os.getpid(), "port": port, "started": time.time(), "token": token}),
-        encoding="utf-8",
+    content = json.dumps(
+        {"pid": os.getpid(), "port": port, "started": time.time(), "token": token}
     )
+    fd = os.open(str(STATE_FILE), os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+    with os.fdopen(fd, "w", encoding="utf-8") as f:
+        f.write(content)
 
 
 def _cleanup_state():
