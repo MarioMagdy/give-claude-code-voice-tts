@@ -1,6 +1,6 @@
-# claude-code-voice-tts — give Claude Code a spoken voice on Windows
+# give-claude-code-voice-tts — give Claude Code a spoken voice on Windows
 
-> **claude-code-voice-tts** is a Claude Code plugin that gives Claude Code **text-to-speech** on
+> **give-claude-code-voice-tts** is a Claude Code plugin that gives Claude Code **text-to-speech** on
 > Windows: a **Stop hook** plus a persistent **edge-tts daemon** read a short `<spoken>` summary of
 > each reply aloud, with a **`speech` skill** to switch voices, mute, and interrupt. Off by default,
 > opt-in per project.
@@ -18,8 +18,8 @@ Edge voices); there's no cloud account, no API key, and no per-character billing
 ## Install
 
 ```text
-/plugin marketplace add MarioMagdy/claude-code-voice-tts
-/plugin install claude-code-voice-tts@claude-code-voice-tts
+/plugin marketplace add MarioMagdy/give-claude-code-voice-tts
+/plugin install voice-tts@give-claude-code-voice-tts
 ```
 
 It's **off by default everywhere**. Turn it on for the current project:
@@ -73,7 +73,7 @@ plus Arabic options). Changes apply on the next reply — no restart.
 
 | Method | Speaks each reply automatically | Reads summaries only (not code) | Voice controls | API key / account |
 |---|---|---|---|---|
-| **claude-code-voice-tts** | Yes | Yes | switch / mute / interrupt | No |
+| **give-claude-code-voice-tts** | Yes | Yes | switch / mute / interrupt | No |
 | Direct `edge-tts` script | No (manual) | No | No | No |
 | Windows Narrator / SAPI | No | No | Limited | No |
 
@@ -86,7 +86,7 @@ plus Arabic options). Changes apply on the next reply — no restart.
 
 ## FAQ
 
-**What is claude-code-voice-tts?**
+**What is give-claude-code-voice-tts?**
 A Claude Code plugin that gives Claude Code text-to-speech on Windows: a Stop hook plus a persistent edge-tts daemon read a short spoken summary of each reply aloud, with a `speech` skill to switch voices, mute, and interrupt. Off by default, opt-in per project.
 
 **Does this require an API key or a paid TTS service?**
@@ -107,8 +107,8 @@ Say "stop talking right now", press `Ctrl+Alt+S`, or run the skill's `silence` c
 No — it's off everywhere until you opt a project in. Zero blast radius in repos you didn't enable.
 
 **How do I give Claude Code a voice?**
-Install the plugin (`/plugin marketplace add MarioMagdy/claude-code-voice-tts` then
-`/plugin install claude-code-voice-tts@claude-code-voice-tts`) and run `/speech` to open the
+Install the plugin (`/plugin marketplace add MarioMagdy/give-claude-code-voice-tts` then
+`/plugin install voice-tts@give-claude-code-voice-tts`) and run `/speech` to open the
 control menu, or directly: `python "$CLAUDE_PLUGIN_ROOT/hooks/voices.py" enable --pin`. After
 that, Claude ends conversational replies with a short `<spoken>` summary which the Stop hook
 speaks aloud.

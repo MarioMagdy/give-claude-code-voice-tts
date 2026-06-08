@@ -1,6 +1,6 @@
 {
   "$schema": "https://json.schemastore.org/claude-code-marketplace-manifest.json",
-  "name": "claude-code-voice-tts",
+  "name": "give-claude-code-voice-tts",
   "description": "Give Claude Code a voice on Windows: a Stop-hook + edge-tts daemon speaks each reply aloud, with a skill to switch voices, mute, and interrupt. Off by default, opt-in per project.",
   "owner": {
     "name": "MarioMagdy",
@@ -8,7 +8,7 @@
   },
   "plugins": [
     {
-      "name": "claude-code-voice-tts",
+      "name": "voice-tts",
       "source": "./",
       "description": "Give Claude Code a voice on Windows: a Stop-hook + edge-tts daemon speaks each reply aloud, with a skill to switch voices, mute, and interrupt. Off by default, opt-in per project.",
       "license": "MIT",
