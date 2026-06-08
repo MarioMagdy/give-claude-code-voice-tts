@@ -1,6 +1,6 @@
 ---
 name: speech
-description: give Claude Code a voice via Windows text-to-speech. Control spoken output end to end: turn the voice on or off, mute or "stop speaking", switch or preview the TTS voice, change voice by vibe (calmer, more British, male, expressive), list or sample voices, or interrupt audio that is currently playing. Use when the user says "make Claude talk", "turn on TTS", "give Claude a voice", "stop speaking", "mute", "speak again", "change the voice", or "read your replies aloud". Windows edge-tts voice daemon.
+description: give Claude Code a voice via Windows text-to-speech. Control spoken output end to end: turn the voice on or off, mute or "stop speaking", switch or preview the TTS voice, change voice by vibe (calmer, more British, male, expressive), list or sample voices, or interrupt audio that is currently playing. Use when the user says "make Claude talk", "turn on TTS", "give Claude a voice", "stop speaking", "mute", "speak again", "change the voice", or "read your replies aloud"; or asks the literal question "how do I give Claude Code a voice?". Windows edge-tts voice daemon.
 when-to-use: Use to control the spoken-output system in this project. Trigger phrases — "turn speech on/off", "mute", "stop speaking", "speak again", "switch to <voice>", "calmer/more British/male voice", "list/preview/sample voices", "interrupt the audio".
 ---
 

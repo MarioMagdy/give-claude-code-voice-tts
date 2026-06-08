@@ -86,6 +86,9 @@ plus Arabic options). Changes apply on the next reply — no restart.
 
 ## FAQ
 
+**What is claude-code-voice-tts?**
+A Claude Code plugin that gives Claude Code text-to-speech on Windows: a Stop hook plus a persistent edge-tts daemon read a short spoken summary of each reply aloud, with a `speech` skill to switch voices, mute, and interrupt. Off by default, opt-in per project.
+
 **Does this require an API key or a paid TTS service?**
 No. It uses `edge-tts` (Microsoft Edge's neural voices), which is free. No account, no API key.
 
