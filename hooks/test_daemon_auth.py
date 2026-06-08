@@ -156,8 +156,14 @@ def test_daemon_f9_integration(running_daemon):
 
     # /stop with token OK but UNC transcript_path -> accepted to queue (204)
     # but daemon logs skip:bad-path and makes no outbound connection.
+    # SC2 — payload must be VALID JSON (the old b'\\s\\x' was a vacuous test:
+    # json.loads failed → payload={} → never exercised the UNC guard).
+    unc_payload = json.dumps({"transcript_path": r"\\evil\share\x"}).encode("utf-8")
+    assert json.loads(unc_payload)["transcript_path"].startswith("\\\\"), (
+        f"UNC payload is not a real UNC path: {unc_payload!r}"
+    )
     status, body = _post(
-        port, "/stop", b'{"transcript_path":"\\\\evil\\share\\x"}',
+        port, "/stop", unc_payload,
         headers={"X-Speech-Token": token},
     )
     print(f"F9 POST /stop (UNC)      -> {status}")

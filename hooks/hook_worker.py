@@ -49,13 +49,21 @@ def _read_session_state(cwd: str) -> dict:
         return {}
 
 
+def _is_local_path(p) -> bool:
+    r"""False for UNC (\\host\share or //host/share) or empty paths. SC1 guard:
+    a token-holding local caller sending a UNC cwd would cause an outbound SMB
+    read (NTLM hash leak) when we read <cwd>/.claude/settings.json."""
+    s = str(p) if p else ""
+    return bool(s) and not s.startswith("\\\\") and not s.startswith("//")
+
+
 def _load_config(cwd):
     # Precedence: session-state > project settings > global settings > defaults(off).
     # Session-state is applied LAST so it can override pinned project values too
-    # (matches what daemon.py does).
+    # (matches what daemon.py does). SC1 — defense in depth: reject non-local cwd.
     cfg = dict(DEFAULTS)
     cfg.update(_read_speech_block(GLOBAL_SETTINGS))
-    if cwd:
+    if cwd and _is_local_path(cwd):
         cfg.update(_read_speech_block(Path(cwd) / ".claude" / "settings.json"))
         cfg.update(_read_session_state(cwd))
     return cfg
@@ -127,7 +135,12 @@ def main():
         return
     payload = _read_payload(sys.argv[1])
     transcript = payload.get("transcript_path")
-    if not transcript or not os.path.exists(transcript):
+    if not transcript or not isinstance(transcript, str):
+        return
+    # SC1 — guard the transcript path against UNC / non-local refs BEFORE any I/O.
+    if transcript.startswith("\\\\") or transcript.startswith("//"):
+        return
+    if not os.path.exists(transcript) or not os.path.isfile(transcript):
         return
 
     cfg = _load_config(payload.get("cwd"))

@@ -4,6 +4,9 @@
 > edge-tts daemon read a short <spoken> summary of each reply aloud, with a skill to switch voices,
 > mute, and interrupt. Off by default, opt-in per project.
 
+## Canonical
+- GitHub: https://github.com/MarioMagdy/claude-code-voice-tts
+
 ## What it is
 - A Claude Code plugin: SessionStart/Stop/SessionEnd hooks + a warm edge-tts daemon (`hooks/daemon.py`)
   + the `speech` control skill (`skills/speech/SKILL.md`).
@@ -22,4 +25,19 @@
 
 ## Use it when
 You want Claude Code to talk — read its replies aloud while you keep working — on Windows. Trigger
-phrases: "make Claude talk", "turn on TTS", "give Claude a voice", "stop speaking", "change the voice".
+phrases: "make Claude talk", "turn on TTS", "give Claude a voice", "stop speaking", "change the voice",
+"switch voice", "speak again", "mute", "unmute", "interrupt the audio", "stop talking right now",
+"read your replies aloud", "calmer voice", "more British voice", "male voice", "expressive voice",
+"text-to-speech for Claude Code", "Claude Code accessibility".
+
+## Not for
+- macOS (playback uses Windows MCI via `winmm.dll`).
+- Linux (same — playback is Windows-only).
+- Anyone who wants every reply read aloud, including code/tables (data-shaped replies are
+  deliberately silent; only `<spoken>` summaries are spoken).
+- Servers / headless Linux boxes without a desktop audio stack.
+
+## Free
+- Uses Microsoft Edge neural voices via `edge-tts` — free, no account, no API key.
+- No Google, Azure, or AWS TTS billing.
+- The optional `keyboard` library (for the `Ctrl+Alt+S` interrupt hotkey) is a free PyPI package.

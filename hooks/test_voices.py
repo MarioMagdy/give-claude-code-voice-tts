@@ -129,6 +129,44 @@ def test_project_targeting_subprocess():
     print("PASS: cwd / --project targeting")
 
 
+# ---------------------------------------------------------------------------
+# SC6 — cmd_session_random must drop a stale ephemeral `enabled=true` so a
+# one-session enable doesn't persist into the next session.
+# ---------------------------------------------------------------------------
+
+def test_session_random_clears_stale_enabled_override():
+    with tempfile.TemporaryDirectory() as d:
+        tmp = Path(d)
+        _point_at(tmp)
+        # Project pins speech.enabled=true (so the gate passes and a roll fires).
+        voices.PROJECT_SETTINGS.parent.mkdir(parents=True, exist_ok=True)
+        voices.PROJECT_SETTINGS.write_text(
+            json.dumps({"speech": {"enabled": True}}), encoding="utf-8"
+        )
+        # Session-state carries a stale `enabled=true` from a previous session.
+        voices.SESSION_STATE.parent.mkdir(parents=True, exist_ok=True)
+        voices.SESSION_STATE.write_text(
+            json.dumps({"enabled": True, "voice": "en-US-AndrewMultilingualNeural"}),
+            encoding="utf-8",
+        )
+        # First, the gate: a pinned-on project must allow the roll.
+        assert voices._resolve_enabled()[0] is True
+        with contextlib.redirect_stdout(io.StringIO()):
+            voices.cmd_session_random(SimpleNamespace())
+        # The resulting session-state must have NO `enabled` key.
+        resulting = _read(voices.SESSION_STATE)
+        assert "enabled" not in resulting, (
+            f"ephemeral enabled must NOT persist; session-state={resulting!r}"
+        )
+        # Voice and picked_* keys ARE allowed to remain (they're session-local).
+        assert isinstance(resulting.get("voice"), str), f"voice should be rolled, got {resulting!r}"
+        assert "picked_at" in resulting
+        # Resolved enabled must now come from the project, not from session.
+        enabled, prov = voices._resolve_enabled()
+        assert enabled is True and "project" in prov.lower(), (enabled, prov)
+    print("PASS: session-random drops stale ephemeral enabled")
+
+
 if __name__ == "__main__":
     test_enable_disable_precedence()
     test_global_scope()

@@ -113,3 +113,97 @@ def test_hook_worker_default_constant_is_false():
     assert hook_worker.DEFAULTS.get("enabled") is False, (
         f"DEFAULTS['enabled'] must be False, got {hook_worker.DEFAULTS!r}"
     )
+
+
+# ---------------------------------------------------------------------------
+# SC1 — _load_config must NOT follow UNC / non-local cwd (no outbound SMB read).
+# ---------------------------------------------------------------------------
+
+def test_load_config_rejects_unc_cwd_daemon(tmp_path, monkeypatch):
+    """daemon._load_config(UNC) must return the same dict as _load_config(None)
+    — i.e. the UNC cwd is NOT read."""
+    base = daemon._load_config(None)
+    unc = r"\\evil\share"
+    unc2 = "//evil/share"
+    assert base == daemon._load_config(unc), (
+        f"UNC cwd should be ignored, got {daemon._load_config(unc)!r} vs {base!r}"
+    )
+    assert base == daemon._load_config(unc2), (
+        f"//-prefixed cwd should be ignored, got {daemon._load_config(unc2)!r} vs {base!r}"
+    )
+    # Belt and braces: empty cwd also still works.
+    assert base == daemon._load_config(""), f"empty cwd should be ignored: {daemon._load_config('')!r}"
+
+
+def test_load_config_rejects_unc_cwd_hook_worker(tmp_path, monkeypatch):
+    """hook_worker._load_config(UNC) must return the same dict as _load_config(None)."""
+    import hook_worker as hw
+    base = hw._load_config(None)
+    unc = r"\\evil\share"
+    unc2 = "//evil/share"
+    assert base == hw._load_config(unc), (
+        f"UNC cwd should be ignored in hook_worker, got {hw._load_config(unc)!r} vs {base!r}"
+    )
+    assert base == hw._load_config(unc2), (
+        f"//-prefixed cwd should be ignored in hook_worker, got {hw._load_config(unc2)!r} vs {base!r}"
+    )
+    assert base == hw._load_config(""), f"empty cwd should be ignored: {hw._load_config('')!r}"
+
+
+def test_is_local_path_helper():
+    """The helper must correctly identify UNC and //-prefixed paths as not-local."""
+    assert daemon._is_local_path(r"C:\Users\me") is True
+    assert daemon._is_local_path("/home/me") is True
+    assert daemon._is_local_path(r"\\evil\share") is False
+    assert daemon._is_local_path("//evil/share") is False
+    assert daemon._is_local_path("") is False
+    assert daemon._is_local_path(None) is False
+
+
+# ---------------------------------------------------------------------------
+# SC2 — _process_job must reject a UNC transcript_path locally (skip:bad-path),
+# NEVER read the file. The earlier integration test sent INVALID JSON and
+# therefore never reached the guard. This unit test goes straight at the path.
+# ---------------------------------------------------------------------------
+
+def test_process_job_rejects_unc_transcript(monkeypatch, tmp_path):
+    """A UNC transcript_path must short-circuit _process_job with skip:bad-path
+    and never call open() / read the file. We also assert that the cwd-scoped
+    config is never read (the SC1 fix is what makes that safe)."""
+    read_calls = []
+    real_open = daemon.open if hasattr(daemon, "open") else open  # noqa: A001
+
+    def fake_open(path, *args, **kwargs):
+        # If anything in _process_job tries to read the UNC path, fail loudly.
+        s = str(path)
+        if s.startswith("\\\\") or s.startswith("//"):
+            raise AssertionError(f"UNC path was opened: {path!r}")
+        read_calls.append(s)
+        return real_open(path, *args, **kwargs)
+
+    # Redirect the log to a temp file so we can assert the status line.
+    monkeypatch.setattr(daemon, "LOG_FILE", tmp_path / "speech-daemon.log")
+
+    # Re-bind builtins.open for the daemon module's namespace (the path guard
+    # uses os.path.exists / os.path.isfile, but the actual file read inside
+    # _last_assistant_text uses the builtin `open`).
+    monkeypatch.setattr(daemon, "open", fake_open, raising=False)  # noqa: A001
+    import builtins
+    monkeypatch.setattr(builtins, "open", fake_open)
+
+    payload = {"transcript_path": r"\\evil\share\transcript.jsonl", "cwd": r"\\evil\share"}
+    # Should return without raising and without reading anything.
+    daemon._process_job(payload)
+    assert not read_calls, f"no file should have been opened, got {read_calls!r}"
+
+    log = (tmp_path / "speech-daemon.log").read_text(encoding="utf-8")
+    assert "skip:bad-path" in log, f"expected skip:bad-path in log, got: {log!r}"
+
+
+def test_process_job_rejects_slash_prefixed_transcript(monkeypatch, tmp_path):
+    """Same guard covers `//evil/share` style paths (non-Windows UNC)."""
+    monkeypatch.setattr(daemon, "LOG_FILE", tmp_path / "speech-daemon.log")
+    payload = {"transcript_path": "//evil/share/transcript.jsonl"}
+    daemon._process_job(payload)
+    log = (tmp_path / "speech-daemon.log").read_text(encoding="utf-8")
+    assert "skip:bad-path" in log, f"expected skip:bad-path in log, got: {log!r}"

@@ -133,10 +133,20 @@ def _read_session_state(cwd_path: Path) -> dict:
         return {}
 
 
+def _is_local_path(p) -> bool:
+    r"""False for UNC (\\host\share or //host/share) or empty paths. SC1 guard:
+    a token-holding local caller sending a UNC cwd would cause an outbound SMB
+    read (NTLM hash leak) when we read <cwd>/.claude/settings.json."""
+    s = str(p) if p else ""
+    return bool(s) and not s.startswith("\\\\") and not s.startswith("//")
+
+
 def _load_config(cwd):
     cfg = dict(DEFAULTS)
     cfg.update(_read_speech_block(GLOBAL_SETTINGS))
-    if cwd:
+    # Defense in depth: if cwd is set but not local (UNC / `//`-prefixed / empty),
+    # treat as None and skip the cwd reads entirely. SC1.
+    if cwd and _is_local_path(cwd):
         cwd_path = Path(cwd)
         cfg.update(_read_speech_block(cwd_path / ".claude" / "settings.json"))
         cfg.update(_read_session_state(cwd_path))
@@ -333,7 +343,9 @@ def _process_job(payload):
     if not os.path.exists(transcript) or not os.path.isfile(transcript):
         _log_job(cwd, "?", "skip:bad-path")
         return
-    cfg = _load_config(cwd)
+    # SC1 — also guard the cwd path before we read any cwd-scoped config. A
+    # UNC cwd would cause an outbound SMB read on _load_config.
+    cfg = _load_config(cwd if _is_local_path(cwd) else None)
     if not cfg.get("enabled", True):
         _log_job(cwd, cfg.get("voice"), "skip:disabled")
         return

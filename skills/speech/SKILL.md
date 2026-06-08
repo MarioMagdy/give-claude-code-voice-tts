@@ -1,6 +1,6 @@
 ---
 name: speech
-description: Control Claude Code's spoken output (text-to-speech) on Windows — turn the voice on or off, mute or "stop speaking", switch or preview the TTS voice, change voice by vibe (calmer, more British, male, expressive), list or sample voices, or interrupt audio that is currently playing. Use when the user says "make Claude talk", "turn on TTS", "give Claude a voice", "stop speaking", "mute", "speak again", "change the voice", or "read your replies aloud". Windows edge-tts voice daemon.
+description: give Claude Code a voice via Windows text-to-speech. Control spoken output end to end: turn the voice on or off, mute or "stop speaking", switch or preview the TTS voice, change voice by vibe (calmer, more British, male, expressive), list or sample voices, or interrupt audio that is currently playing. Use when the user says "make Claude talk", "turn on TTS", "give Claude a voice", "stop speaking", "mute", "speak again", "change the voice", or "read your replies aloud". Windows edge-tts voice daemon.
 when-to-use: Use to control the spoken-output system in this project. Trigger phrases — "turn speech on/off", "mute", "stop speaking", "speak again", "switch to <voice>", "calmer/more British/male voice", "list/preview/sample voices", "interrupt the audio".
 ---
 
@@ -85,10 +85,10 @@ silent too, do both: `silence` then `disable`.
 ## Ephemeral vs pinned
 
 `set`, `match`, `enable`, `disable` default to **ephemeral** — written to
-`.claude/session-state.json`, lasting this session only; a fresh `claude` re-rolls
-a random voice and resets to enabled. Add `--pin` to write `.claude/settings.json`
-**permanently** (and clear the session override so the pin wins). Default to
-ephemeral unless the user says "permanently" / "always".
+`.claude/session-state.json`, lasting this session only. A fresh session reverts to the
+pinned project setting (or off if none), and re-rolls a random voice. Add `--pin` to write
+`.claude/settings.json` **permanently** (and clear the session override so the pin wins).
+Default to ephemeral unless the user says "permanently" / "always".
 
 ## Vibe mapping
 

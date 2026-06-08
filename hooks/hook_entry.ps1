@@ -33,7 +33,12 @@ if (-not (Test-Path $state)) { _log "no state file, exit"; exit 0 }
 try {
     $info = Get-Content $state -Raw -ErrorAction Stop | ConvertFrom-Json
     $port = [int]$info.port
+    $token = [string]$info.token
     if ($port -le 0) { _log "bad port, exit"; exit 0 }
+    # SC4 — the daemon requires X-Speech-Token; without it the 401s would be
+    # silent here (curl -s) and no audio would ever play. If we have no token,
+    # exit 0 quietly (matches session_end.ps1 behaviour).
+    if (-not $token) { _log "no token, exit"; exit 0 }
 } catch {
     _log "state parse failed, exit"
     exit 0
@@ -47,9 +52,11 @@ $tmp = Join-Path $env:TEMP ("claude-tts-post-" + [guid]::NewGuid().ToString("N")
 _log "wrote temp"
 
 # 4. POST it. curl.exe is built into Windows 10/11; tiny startup, native HTTP.
-#    -4 forces IPv4 (skips IPv6 fallback on localhost).
+#    -4 forces IPv4 (skips IPv6 fallback on localhost). SC4: send the
+#    X-Speech-Token header that the daemon requires (read from daemon.state).
 & curl.exe -s -o NUL -4 `
     -X POST "http://127.0.0.1:$port/stop" `
+    -H "X-Speech-Token: $token" `
     -H 'Content-Type: application/json' `
     --data-binary "@$tmp" `
     --max-time 2 | Out-Null

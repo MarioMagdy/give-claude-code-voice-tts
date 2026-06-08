@@ -460,6 +460,11 @@ def cmd_session_random(args):
     state["voice"] = pick
     state["picked_at"] = time.time()
     state["picked_by"] = "session-random"
+    # SC6 — an ephemeral `enable` from a prior session must NOT bleed into this
+    # one. Drop any stale `enabled` override so the new session reverts to the
+    # pinned project setting (or off if none). Voice / picked_at / picked_by
+    # are session-local and stay.
+    state.pop("enabled", None)
     _write_json(SESSION_STATE, state)
     label = CURATED_BY_ID[pick][3] if pick in CURATED_BY_ID else pick
     print(f"session voice rolled: {pick}  ({label})")
