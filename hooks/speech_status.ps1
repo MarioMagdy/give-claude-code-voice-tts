@@ -13,6 +13,15 @@
 
 $ErrorActionPreference = 'SilentlyContinue'
 
+function Test-LocalPath($p) {
+    # False for UNC paths -- \\host, //host, and the mixed forms /\ and \/ -- and empty.
+    # Windows normalizes any two leading path separators to a UNC path, which would
+    # trigger an outbound SMB read (NTLM-hash leak). Mirrors the Python _is_local_path guard.
+    if ([string]::IsNullOrEmpty($p)) { return $false }
+    if ($p.Length -ge 2 -and ($p[0] -eq '\' -or $p[0] -eq '/') -and ($p[1] -eq '\' -or $p[1] -eq '/')) { return $false }
+    return $true
+}
+
 # --- project dir from the hook payload (fallback: current location) ---
 $cwd = $null
 try {
@@ -22,6 +31,8 @@ try {
     }
 } catch { }
 if (-not $cwd) { $cwd = (Get-Location).Path }
+# Guard: a UNC / mixed-slash $cwd must not reach Test-Path/Get-Content (SMB / NTLM leak). Default OFF.
+if (-not (Test-LocalPath $cwd)) { exit 0 }
 
 function Get-Enabled($cwd) {
     $layers = @(

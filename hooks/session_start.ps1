@@ -11,6 +11,15 @@
 
 $ErrorActionPreference = 'SilentlyContinue'
 
+function Test-LocalPath($p) {
+    # False for UNC paths -- \\host, //host, and the mixed forms /\ and \/ -- and empty.
+    # Windows normalizes any two leading path separators to a UNC path, which would
+    # trigger an outbound SMB read (NTLM-hash leak). Mirrors the Python _is_local_path guard.
+    if ([string]::IsNullOrEmpty($p)) { return $false }
+    if ($p.Length -ge 2 -and ($p[0] -eq '\' -or $p[0] -eq '/') -and ($p[1] -eq '\' -or $p[1] -eq '/')) { return $false }
+    return $true
+}
+
 $here   = $PSScriptRoot
 $state  = Join-Path $here 'daemon.state'
 $daemon = Join-Path $here 'daemon.py'
@@ -24,6 +33,8 @@ try {
     }
 } catch { }
 if (-not $projectDir) { $projectDir = (Get-Location).Path }
+# Guard: don't hand a UNC / mixed-slash project dir to voices.py (it would read settings over SMB).
+if (-not (Test-LocalPath $projectDir)) { $projectDir = $null }
 
 function Test-DaemonAlive {
     if (-not (Test-Path $state)) { return $false }
@@ -57,7 +68,7 @@ if (-not (Test-DaemonAlive)) {
 # --- roll a fresh session voice for THIS project (no-op where disabled) ---
 $python   = (Get-Command python.exe -ErrorAction SilentlyContinue).Source
 $voicesPy = Join-Path $here 'voices.py'
-if ($python -and (Test-Path $voicesPy)) {
+if ($python -and $projectDir -and (Test-Path $voicesPy)) {
     Start-Process -FilePath $python `
                   -ArgumentList @("`"$voicesPy`"", "--project", "`"$projectDir`"", "session-random") `
                   -WindowStyle Hidden | Out-Null
