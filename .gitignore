@@ -1,0 +1,17 @@
+__pycache__/
+*.pyc
+.venv/
+*.mp3
+
+# Runtime state — daemon writes pid+port here on startup.
+hooks/daemon.state
+
+# Ephemeral per-session voice pick (rolled by session_start hook).
+.claude/session-state.json
+
+# Per-job daemon log (one line per spoken job, voice + status only — no spoken
+# text; written to the user's home dir, not under any project).
+.claude/speech.log
+~/.claude/speech-daemon.log
+.pytest_cache/
+.DS_Store

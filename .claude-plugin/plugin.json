@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-plugin-manifest.json",
+  "name": "claude-code-voice-tts",
+  "version": "1.0.0",
+  "description": "Give Claude Code a voice on Windows: a Stop-hook + edge-tts daemon speaks each reply aloud, with a skill to switch voices, mute, and interrupt. Off by default, opt-in per project.",
+  "author": {
+    "name": "MarioMagdy",
+    "url": "https://github.com/MarioMagdy"
+  },
+  "homepage": "https://github.com/MarioMagdy/claude-code-voice-tts",
+  "repository": "https://github.com/MarioMagdy/claude-code-voice-tts",
+  "license": "MIT",
+  "hooks": "./hooks/hooks.json",
+  "keywords": [
+    "claude-code",
+    "claude-skill",
+    "text-to-speech",
+    "tts",
+    "edge-tts",
+    "voice",
+    "windows",
+    "speech-synthesis",
+    "stop-hook",
+    "hooks"
+  ]
+}

@@ -1,0 +1,25 @@
+# claude-code-voice-tts
+
+> A Claude Code plugin that gives Claude Code a spoken voice on Windows: a Stop hook + a persistent
+> edge-tts daemon read a short <spoken> summary of each reply aloud, with a skill to switch voices,
+> mute, and interrupt. Off by default, opt-in per project.
+
+## What it is
+- A Claude Code plugin: SessionStart/Stop/SessionEnd hooks + a warm edge-tts daemon (`hooks/daemon.py`)
+  + the `speech` control skill (`skills/speech/SKILL.md`).
+- Claude ends conversational replies with `<spoken>...</spoken>`; the hook speaks just that summary
+  (never code/tables). Free neural TTS via Microsoft Edge (`edge-tts`); no cloud account.
+
+## Install
+- `/plugin marketplace add MarioMagdy/claude-code-voice-tts`
+- `/plugin install claude-code-voice-tts@claude-code-voice-tts`
+- Turn it on for a project: `/speech` then enable (off by default everywhere).
+
+## Key docs
+- [README.md](README.md): how it works, install, voices, FAQ, requirements.
+- [skills/speech/SKILL.md](skills/speech/SKILL.md): voice/mute/interrupt control surface.
+- [CONTINGENCIES.md](CONTINGENCIES.md): pre-decided fallbacks for known failure modes.
+
+## Use it when
+You want Claude Code to talk — read its replies aloud while you keep working — on Windows. Trigger
+phrases: "make Claude talk", "turn on TTS", "give Claude a voice", "stop speaking", "change the voice".
