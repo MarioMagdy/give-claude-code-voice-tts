@@ -50,11 +50,19 @@ def _read_session_state(cwd: str) -> dict:
 
 
 def _is_local_path(p) -> bool:
-    r"""False for UNC (\\host\share or //host/share) or empty paths. SC1 guard:
-    a token-holding local caller sending a UNC cwd would cause an outbound SMB
-    read (NTLM hash leak) when we read <cwd>/.claude/settings.json."""
+    r"""False for UNC paths and empty paths. SC1 guard: a token-holding local
+    caller sending a UNC path would cause an outbound SMB read (NTLM hash leak)
+    when we read <path>/.claude/settings.json. Windows normalizes ANY two
+    leading path separators -- \\, //, AND the mixed forms /\ and \/ -- to a
+    UNC path, so reject every two-separator prefix, not just the literal \\
+    and // ones (the mixed forms /\host\share and \/host/share would otherwise
+    slip through and still resolve to \\host\share)."""
     s = str(p) if p else ""
-    return bool(s) and not s.startswith("\\\\") and not s.startswith("//")
+    if not s:
+        return False
+    if len(s) >= 2 and s[0] in ("\\", "/") and s[1] in ("\\", "/"):
+        return False
+    return True
 
 
 def _load_config(cwd):
@@ -137,8 +145,9 @@ def main():
     transcript = payload.get("transcript_path")
     if not transcript or not isinstance(transcript, str):
         return
-    # SC1 — guard the transcript path against UNC / non-local refs BEFORE any I/O.
-    if transcript.startswith("\\\\") or transcript.startswith("//"):
+    # SC1 — guard the transcript path against UNC / non-local refs BEFORE any I/O
+    # (incl. the mixed-slash /\ and \/ forms Windows also resolves to UNC).
+    if not _is_local_path(transcript):
         return
     if not os.path.exists(transcript) or not os.path.isfile(transcript):
         return

@@ -160,6 +160,22 @@ def test_is_local_path_helper():
     assert daemon._is_local_path(None) is False
 
 
+def test_is_local_path_rejects_mixed_slash_unc():
+    """Council r2 (Gemini): Windows normalizes the mixed-slash forms /\\ and \\/
+    to a UNC path too, so the guard must reject them — not just the literal
+    \\\\ and // prefixes. `os.path.normpath('/\\evil\\share') == '\\\\evil\\share'`."""
+    import os
+    for p in (chr(47) + chr(92) + "evil" + chr(92) + "share",   # /\evil\share
+              chr(92) + chr(47) + "evil" + chr(47) + "share"):   # \/evil/share
+        assert daemon._is_local_path(p) is False, f"mixed-slash UNC must be rejected: {p!r}"
+        # sanity: confirm Windows really would have resolved it to a UNC path
+        norm = os.path.normpath(p)
+        assert norm.startswith("\\\\") or norm.startswith("//"), norm
+    # hook_worker mirrors the same guard
+    import hook_worker as hw
+    assert hw._is_local_path(chr(47) + chr(92) + "evil" + chr(92) + "share") is False
+
+
 # ---------------------------------------------------------------------------
 # SC2 — _process_job must reject a UNC transcript_path locally (skip:bad-path),
 # NEVER read the file. The earlier integration test sent INVALID JSON and

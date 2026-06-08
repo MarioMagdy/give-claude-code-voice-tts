@@ -1,4 +1,4 @@
-# Contingencies — claude-tools / speech
+# Contingencies — claude-code-voice-tts
 
 When something breaks, look here first. Each scenario has a pre-decided
 fallback so we don't have to invent one mid-incident.

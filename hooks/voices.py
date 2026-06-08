@@ -41,6 +41,19 @@ SESSION_STATE = PROJECT_DIR / ".claude" / "session-state.json"
 USER_SETTINGS = Path.home() / ".claude" / "settings.json"
 
 
+def _is_local_path(p) -> bool:
+    r"""False for UNC paths and empty paths. Windows normalizes ANY two leading
+    path separators -- \\, //, and the mixed forms /\ and \/ -- to a UNC path,
+    so a non-local --project would make us read <project>/.claude/settings.json
+    over SMB (NTLM hash leak). Mirrors the daemon/hook_worker guard."""
+    s = str(p) if p else ""
+    if not s:
+        return False
+    if len(s) >= 2 and s[0] in ("\\", "/") and s[1] in ("\\", "/"):
+        return False
+    return True
+
+
 def _set_project_dir(project: Path):
     """Repoint the project-scoped config files at `project`. Called from main()
     for the cwd default / --project override."""
@@ -527,7 +540,9 @@ def main():
     sl.set_defaults(func=cmd_silence)
 
     args = p.parse_args()
-    if args.project:
+    # SC1 — only repoint at --project when it is a local path; a UNC/mixed-slash
+    # project dir would make the project-settings read hit an SMB share.
+    if args.project and _is_local_path(args.project):
         _set_project_dir(Path(args.project))
     args.func(args)
 
