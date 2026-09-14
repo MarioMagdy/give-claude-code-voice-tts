@@ -15,3 +15,6 @@ hooks/daemon.state
 ~/.claude/speech-daemon.log
 .pytest_cache/
 .DS_Store
+
+# Demo page audio (real edge-tts output, committed on purpose).
+!docs/audio/*.mp3
