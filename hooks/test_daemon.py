@@ -168,9 +168,15 @@ def test_is_local_path_rejects_mixed_slash_unc():
     for p in (chr(47) + chr(92) + "evil" + chr(92) + "share",   # /\evil\share
               chr(92) + chr(47) + "evil" + chr(47) + "share"):   # \/evil/share
         assert daemon._is_local_path(p) is False, f"mixed-slash UNC must be rejected: {p!r}"
-        # sanity: confirm Windows really would have resolved it to a UNC path
-        norm = os.path.normpath(p)
-        assert norm.startswith("\\\\") or norm.startswith("//"), norm
+        # sanity: confirm Windows really would have resolved it to a UNC path.
+        # os.path.normpath only treats backslash as a separator on Windows, so
+        # this check is only meaningful (and only true) when os.name == "nt" —
+        # on POSIX it leaves the string unchanged. Do NOT delete the security
+        # assertion above to "fix" this: that one must keep running on every
+        # platform, since it's what actually proves the path guard works.
+        if os.name == "nt":
+            norm = os.path.normpath(p)
+            assert norm.startswith("\\\\") or norm.startswith("//"), norm
     # hook_worker mirrors the same guard
     import hook_worker as hw
     assert hw._is_local_path(chr(47) + chr(92) + "evil" + chr(92) + "share") is False
