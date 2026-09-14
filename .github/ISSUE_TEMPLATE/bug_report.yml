@@ -1,0 +1,99 @@
+name: Bug report
+description: Something isn't working right in give-claude-code-voice-tts
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for filing a bug. This plugin is **Windows-only** — playback goes
+        through `winmm.dll` via MCI, and the SessionStart/SessionEnd hooks are
+        PowerShell. If you're on macOS or Linux and nothing plays, that's the
+        known, unsupported platform gap (see the README's FAQ), not a bug — please
+        don't file it here.
+
+  - type: checkboxes
+    attributes:
+      label: Platform confirmation
+      options:
+        - label: I'm running this on Windows (10/11).
+          required: true
+
+  - type: input
+    attributes:
+      label: Windows version
+      description: e.g. Windows 11 23H2, Windows 10 22H2
+    validations:
+      required: true
+
+  - type: input
+    attributes:
+      label: Python version
+      description: Output of `python --version` (the plugin needs 3.10+, and needs `pythonw.exe` on PATH for the daemon).
+    validations:
+      required: true
+
+  - type: input
+    attributes:
+      label: edge-tts version
+      description: Output of `pip show edge-tts` (or `python -m pip show edge-tts`).
+    validations:
+      required: true
+
+  - type: dropdown
+    attributes:
+      label: Is the speech daemon running?
+      description: >
+        Check whether `hooks/daemon.state` exists next to your installed plugin's
+        hooks folder (`$CLAUDE_PLUGIN_ROOT/hooks/daemon.state`). If you're not sure how
+        to check, say so and describe what you tried.
+      options:
+        - "Yes — daemon.state exists"
+        - "No — daemon.state is missing"
+        - "Not sure"
+    validations:
+      required: true
+
+  - type: dropdown
+    attributes:
+      label: Is speech enabled for this project?
+      description: >
+        Run `python "$CLAUDE_PLUGIN_ROOT/hooks/voices.py" current` in the project, or ask
+        the `speech` skill "is speech on?".
+      options:
+        - "Yes, it's enabled"
+        - "No, it's off (and I expected it to be on)"
+        - "Not sure"
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: Relevant lines from the speech log
+      description: >
+        The daemon writes one line per job (voice + status, never the spoken text
+        itself) to `%USERPROFILE%\.claude\speech-daemon.log`. Paste the last few
+        lines around the time the problem happened.
+      render: text
+    validations:
+      required: false
+
+  - type: textarea
+    attributes:
+      label: What happened
+      description: What did you expect, and what actually happened instead?
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: Steps to reproduce
+      description: As precisely as you can — including whether this is a fresh session or a long-running one, and whether it's the daemon path or something else.
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: Anything else
+      description: Config overrides (`.claude/settings.json` speech block, `.claude/session-state.json`), voice id in use, whether the `keyboard` package is installed, etc.
+    validations:
+      required: false
