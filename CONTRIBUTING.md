@@ -41,13 +41,14 @@ about platform sensitivity before you trust a green run:
   it over HTTP (`/stop`, `/cancel`, `/shutdown`, token checks). That part is
   platform-portable too, since the HTTP surface never touches `winmm`.
 - One test, `test_is_local_path_rejects_mixed_slash_unc` in
-  `hooks/test_daemon.py`, encodes a **Windows-specific** path-normalization
-  fact (`os.path.normpath` turning `/\evil\share` into a UNC path). It
-  currently fails on Linux/macOS because `os.path.normpath` doesn't do that
-  fold there — the guard code itself (`_is_local_path`) is fine; the test's
-  own sanity assertion about `normpath` is what's platform-bound. Don't
-  "fix" the guard to chase this on non-Windows; if you touch it, treat it as
-  a test-only Windows assumption.
+  `hooks/test_daemon.py`, contains a **Windows-specific** sanity assertion
+  about path normalization (`os.path.normpath` turning `/\evil\share` into a
+  UNC path). `os.path.normpath` doesn't do that fold on Linux/macOS, so that
+  one assertion is gated behind `if os.name == "nt":`. The security
+  assertion in the same test — that `_is_local_path` rejects the path — is
+  deliberately **not** gated and must keep running everywhere, because it is
+  what actually proves the guard works. Don't "fix" a failure there by
+  skipping the test or loosening the guard.
 - Nothing in the suite actually calls `_play_mci` / `mciSendStringW`, so you
   won't get real audio playback coverage off Windows regardless of pytest's
   exit code. If you're changing playback, verify by ear on Windows.
