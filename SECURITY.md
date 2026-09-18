@@ -198,9 +198,11 @@ exist and be a regular file (`hooks/daemon.py:351`). The same guard is mirrored
 in `hooks/hook_worker.py:52-65`, `hooks/voices.py:44-54`,
 `hooks/session_start.ps1:14-21`, and `hooks/speech_status.ps1:16-23`.
 
-Tests: `hooks/test_daemon.py:153-176` covers the helper including the mixed-slash
-forms and asserts that `os.path.normpath` really does turn them into UNC;
-`test_daemon.py:185-217` monkeypatches `open` and asserts `_process_job` opens
+Tests: `hooks/test_daemon.py:153-189` covers the helper including all four
+mixed-slash forms. That rejection is asserted on every platform; the companion
+sanity check that `os.path.normpath` really does fold those forms into a UNC
+path only holds on Windows, so it alone is gated behind `os.name == "nt"`.
+`test_daemon.py:191-223` monkeypatches `open` and asserts `_process_job` opens
 nothing at all for a UNC transcript, logging `skip:bad-path`;
 `test_daemon.py:122-150` asserts a UNC `cwd` yields byte-identical config to no
 `cwd` at all, proving the remote settings file is never read.
