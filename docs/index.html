@@ -1,0 +1,1021 @@
+<title>Claude Code, Out Loud</title>
+<meta name="description" content="A Claude Code plugin that speaks a one-line summary of each reply aloud on Windows — never your code. Press play to hear it.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+
+<style>
+:root {
+  --ground:   #EAECEF;
+  --surface:  #FAFBFC;
+  --surface-2:#E2E5E9;
+  --ink:      #171A1E;
+  --ink-soft: #3A424B;
+  --muted:    #5E6873;
+  --rule:     #CFD5DB;
+  --rule-soft:#DDE2E7;
+  --accent:   #A8722C;
+  --accent-ink:#8A5C1E;
+  --accent-wash:#F0E4D2;
+  --signal:   #1F6B66;
+  --signal-wash:#DCEBE9;
+  --code-bg:  #E4E7EB;
+  --shadow:   0 1px 2px rgba(23,26,30,.06), 0 8px 24px -12px rgba(23,26,30,.18);
+
+  --f-display: "Fraunces", "Iowan Old Style", Georgia, serif;
+  --f-body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --f-mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+
+  --col: 68ch;
+  --rail: 232px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --ground:   #121519;
+    --surface:  #1A1E24;
+    --surface-2:#232830;
+    --ink:      #E6EAEE;
+    --ink-soft: #C3CAD2;
+    --muted:    #8B959F;
+    --rule:     #2C323A;
+    --rule-soft:#232830;
+    --accent:   #E0A75C;
+    --accent-ink:#EDBE7E;
+    --accent-wash:#2E2517;
+    --signal:   #54B9AD;
+    --signal-wash:#132A28;
+    --code-bg:  #12161B;
+    --shadow:   0 1px 2px rgba(0,0,0,.4), 0 12px 32px -16px rgba(0,0,0,.7);
+  }
+}
+:root[data-theme="dark"] {
+  --ground:   #121519;
+  --surface:  #1A1E24;
+  --surface-2:#232830;
+  --ink:      #E6EAEE;
+  --ink-soft: #C3CAD2;
+  --muted:    #8B959F;
+  --rule:     #2C323A;
+  --rule-soft:#232830;
+  --accent:   #E0A75C;
+  --accent-ink:#EDBE7E;
+  --accent-wash:#2E2517;
+  --signal:   #54B9AD;
+  --signal-wash:#132A28;
+  --code-bg:  #12161B;
+  --shadow:   0 1px 2px rgba(0,0,0,.4), 0 12px 32px -16px rgba(0,0,0,.7);
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--ground);
+  color: var(--ink);
+  font-family: var(--f-body);
+  font-size: 16.5px;
+  line-height: 1.62;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3 { font-family: var(--f-display); text-wrap: balance; margin: 0; font-weight: 600; }
+p { margin: 0; }
+a { color: var(--accent-ink); text-decoration-thickness: 1px; text-underline-offset: 3px; }
+
+:focus-visible {
+  outline: 2px solid var(--signal);
+  outline-offset: 3px;
+  border-radius: 3px;
+}
+
+/* ---------- shell ---------- */
+
+.wrap {
+  display: grid;
+  grid-template-columns: var(--rail) minmax(0, 1fr);
+  gap: 0;
+  max-width: 1180px;
+  margin: 0 auto;
+}
+
+.rail {
+  position: sticky;
+  top: 0;
+  align-self: start;
+  height: 100vh;
+  padding-block: 40px;
+  padding-inline: 20px 12px;
+  border-right: 1px solid var(--rule-soft);
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+
+.rail-brand {
+  font-family: var(--f-mono);
+  font-size: 11px;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.tracks { display: flex; flex-direction: column; gap: 1px; list-style: none; margin: 0; padding: 0; }
+
+.track a {
+  display: grid;
+  grid-template-columns: 22px 1fr;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 8px;
+  border-radius: 4px;
+  text-decoration: none;
+  color: var(--muted);
+  font-size: 13.5px;
+  line-height: 1.3;
+  transition: color .18s, background .18s;
+}
+.track a:hover { color: var(--ink); background: var(--surface-2); }
+.track[data-on="1"] a { color: var(--ink); font-weight: 500; }
+
+.track-bars { display: flex; align-items: center; gap: 1.5px; height: 14px; }
+.track-bars i { display: block; width: 2px; background: var(--rule); border-radius: 1px; }
+.track[data-on="1"] .track-bars i { background: var(--accent); }
+
+.main { padding-inline: 44px; padding-block: 0 0; min-width: 0; }
+
+section { padding-block: 76px; border-bottom: 1px solid var(--rule-soft); }
+section:last-of-type { border-bottom: 0; }
+.col { max-width: var(--col); display: flex; flex-direction: column; gap: 20px; }
+
+.eyebrow {
+  font-family: var(--f-mono);
+  font-size: 11px;
+  letter-spacing: .13em;
+  text-transform: uppercase;
+  color: var(--accent-ink);
+}
+h2 { font-size: clamp(25px, 3.4vw, 34px); line-height: 1.16; letter-spacing: -.01em; }
+h3 { font-size: 18px; line-height: 1.3; }
+.lede { font-size: 18.5px; color: var(--ink-soft); }
+.small { font-size: 14.5px; color: var(--muted); }
+
+/* ---------- hero ---------- */
+
+.hero { padding-block: 64px 80px; border-bottom: 1px solid var(--rule-soft); }
+.hero h1 {
+  font-size: clamp(38px, 6.4vw, 66px);
+  line-height: 1.02;
+  letter-spacing: -.028em;
+  font-weight: 600;
+  max-width: 15ch;
+}
+.hero h1 em {
+  font-style: italic;
+  color: var(--accent-ink);
+}
+.hero-sub { font-size: 19.5px; color: var(--ink-soft); max-width: 54ch; }
+
+.player {
+  margin-top: 8px;
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: 10px;
+  padding: 18px;
+  display: grid;
+  grid-template-columns: auto minmax(0,1fr);
+  gap: 18px;
+  align-items: center;
+  box-shadow: var(--shadow);
+  max-width: var(--col);
+}
+
+.play-big {
+  width: 60px; height: 60px;
+  border-radius: 50%;
+  border: 1px solid var(--accent);
+  background: var(--accent-wash);
+  color: var(--accent-ink);
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  flex: none;
+  transition: transform .15s, background .18s;
+}
+.play-big:hover { transform: scale(1.05); }
+.play-big svg { width: 22px; height: 22px; fill: currentColor; }
+.play-big[data-playing="1"] { background: var(--signal-wash); border-color: var(--signal); color: var(--signal); }
+
+.wave-box { min-width: 0; display: flex; flex-direction: column; gap: 8px; }
+canvas.wave { width: 100%; height: 56px; display: block; }
+.wave-cap {
+  font-family: var(--f-mono);
+  font-size: 11.5px;
+  color: var(--muted);
+  letter-spacing: .02em;
+}
+.wave-cap b { color: var(--ink-soft); font-weight: 500; }
+
+/* ---------- terminal ---------- */
+
+.term {
+  background: var(--code-bg);
+  border: 1px solid var(--rule);
+  border-radius: 8px;
+  font-family: var(--f-mono);
+  font-size: 13.5px;
+  line-height: 1.75;
+  overflow-x: auto;
+  max-width: var(--col);
+}
+.term-bar {
+  display: flex; align-items: center; gap: 7px;
+  padding: 9px 13px;
+  border-bottom: 1px solid var(--rule);
+  color: var(--muted);
+  font-size: 11px;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  position: sticky; left: 0;
+}
+.term-body { padding: 13px 16px 15px; white-space: pre; color: var(--ink-soft); }
+.term-body .dim { color: var(--muted); }
+.term-body .ok { color: var(--signal); }
+.cursor {
+  display: inline-block; width: 8px; height: 15px;
+  background: var(--accent); vertical-align: -2px;
+  animation: blink 1.15s steps(1) infinite;
+}
+@keyframes blink { 0%,50% {opacity:1} 50.01%,100% {opacity:0} }
+
+/* ---------- the spoken-tag reply ---------- */
+
+.reply {
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: 10px;
+  overflow: hidden;
+  max-width: var(--col);
+}
+.reply-head {
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--rule-soft);
+  font-family: var(--f-mono);
+  font-size: 11px;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--muted);
+  display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap;
+}
+.reply-body { padding: 16px; display: flex; flex-direction: column; gap: 14px; font-size: 15.5px; }
+.reply-body pre {
+  margin: 0; padding: 12px 14px;
+  background: var(--code-bg);
+  border-radius: 6px;
+  font-family: var(--f-mono);
+  font-size: 12.8px;
+  line-height: 1.65;
+  overflow-x: auto;
+  color: var(--ink-soft);
+}
+.reply-body table {
+  border-collapse: collapse; font-size: 13.5px; font-family: var(--f-mono);
+  width: 100%;
+}
+.reply-body th, .reply-body td {
+  text-align: left; padding: 6px 12px 6px 0;
+  border-bottom: 1px solid var(--rule-soft);
+  font-variant-numeric: tabular-nums;
+}
+.reply-body th { color: var(--muted); font-weight: 500; }
+
+.muffle { position: relative; transition: opacity .4s; }
+.silenced .muffle { opacity: .34; }
+
+.spoken-line {
+  border-left: 3px solid var(--rule);
+  padding: 10px 0 10px 14px;
+  display: flex; gap: 13px; align-items: flex-start;
+  transition: border-color .3s, background .3s;
+  border-radius: 0 6px 6px 0;
+}
+.spoken-line[data-on="1"] { border-left-color: var(--signal); background: var(--signal-wash); }
+.spoken-tag {
+  font-family: var(--f-mono); font-size: 11px;
+  color: var(--muted); letter-spacing: .05em;
+  display: block; margin-bottom: 3px;
+}
+.spoken-line[data-on="1"] .spoken-tag { color: var(--signal); }
+
+.play-sm {
+  flex: none;
+  width: 34px; height: 34px; border-radius: 50%;
+  border: 1px solid var(--accent);
+  background: var(--accent-wash); color: var(--accent-ink);
+  cursor: pointer; display: grid; place-items: center;
+  transition: background .18s, border-color .18s, color .18s;
+}
+.play-sm svg { width: 13px; height: 13px; fill: currentColor; }
+.play-sm:hover { background: var(--accent); color: var(--surface); }
+.play-sm[data-playing="1"] { background: var(--signal); border-color: var(--signal); color: var(--surface); }
+
+/* ---------- pipeline ---------- */
+
+.pipe { display: flex; flex-direction: column; gap: 0; max-width: var(--col); }
+.stage {
+  display: grid; grid-template-columns: 30px minmax(0,1fr); gap: 16px;
+  padding: 14px 0;
+}
+.stage-mark { position: relative; display: flex; justify-content: center; }
+.stage-dot {
+  width: 11px; height: 11px; border-radius: 50%;
+  background: var(--surface); border: 2px solid var(--accent);
+  margin-top: 6px; z-index: 1;
+}
+.stage-line {
+  position: absolute; top: 6px; bottom: -14px; left: 50%;
+  width: 2px; margin-left: -1px; background: var(--rule);
+}
+.stage:last-child .stage-line { display: none; }
+.stage h3 { font-family: var(--f-body); font-size: 15.5px; font-weight: 600; }
+.stage h3 code { font-family: var(--f-mono); font-size: 13.5px; color: var(--accent-ink); }
+.stage p { font-size: 15px; color: var(--muted); margin-top: 2px; }
+
+/* ---------- voices ---------- */
+
+.voice-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(248px, 1fr));
+  gap: 10px;
+  max-width: 820px;
+}
+.voice {
+  display: grid; grid-template-columns: auto minmax(0,1fr); gap: 13px;
+  align-items: start;
+  padding: 14px;
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: 8px;
+  transition: border-color .18s;
+}
+.voice[data-playing="1"] { border-color: var(--signal); }
+.voice-name { font-weight: 600; font-size: 15px; line-height: 1.25; }
+.voice-id { font-family: var(--f-mono); font-size: 11.5px; color: var(--accent-ink); margin-top: 3px; word-break: break-all; }
+.voice-desc { font-size: 13.5px; color: var(--muted); margin-top: 6px; line-height: 1.5; }
+.voice[lang="ar"] .voice-desc { direction: ltr; }
+
+/* ---------- session ---------- */
+
+.clips { display: flex; flex-direction: column; gap: 8px; max-width: var(--col); }
+.clip {
+  display: grid; grid-template-columns: auto minmax(0,1fr); gap: 14px; align-items: center;
+  padding: 13px 15px;
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: 8px;
+  transition: border-color .18s;
+}
+.clip[data-playing="1"] { border-color: var(--signal); }
+.clip-txt { font-size: 15.5px; }
+.clip-when { font-family: var(--f-mono); font-size: 11px; color: var(--muted); letter-spacing: .06em; text-transform: uppercase; display: block; margin-bottom: 3px; }
+
+/* ---------- install ---------- */
+
+.cmds { display: flex; flex-direction: column; gap: 8px; max-width: var(--col); }
+.cmd {
+  display: flex; align-items: center; gap: 12px;
+  background: var(--code-bg);
+  border: 1px solid var(--rule);
+  border-radius: 7px;
+  padding: 12px 14px;
+  font-family: var(--f-mono);
+  font-size: 13.5px;
+  overflow-x: auto;
+}
+.cmd span { white-space: pre; color: var(--ink-soft); }
+.cmd .prompt { color: var(--accent-ink); flex: none; }
+
+.btn-row { display: flex; flex-wrap: wrap; gap: 10px; }
+.btn {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 11px 18px;
+  border-radius: 7px;
+  font-size: 15px; font-weight: 500;
+  text-decoration: none;
+  border: 1px solid var(--accent);
+  background: var(--accent); color: var(--ground);
+  transition: opacity .18s;
+}
+.btn:hover { opacity: .87; }
+.btn.ghost { background: transparent; color: var(--accent-ink); }
+
+/* ---------- fine print ---------- */
+
+.facts { display: flex; flex-direction: column; gap: 14px; max-width: var(--col); }
+.fact {
+  display: grid; grid-template-columns: 78px minmax(0,1fr); gap: 16px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--rule-soft);
+  font-size: 15px;
+}
+.fact:last-child { border-bottom: 0; padding-bottom: 0; }
+.fact dt {
+  font-family: var(--f-mono); font-size: 10.5px; letter-spacing: .1em;
+  text-transform: uppercase; color: var(--muted); padding-top: 4px;
+}
+.fact dd { margin: 0; color: var(--ink-soft); }
+
+footer {
+  padding: 34px 0 60px;
+  font-size: 14px; color: var(--muted);
+  display: flex; flex-wrap: wrap; gap: 8px 20px;
+  border-top: 1px solid var(--rule-soft);
+}
+
+/* ---------- responsive ---------- */
+
+@media (max-width: 900px) {
+  .wrap { grid-template-columns: minmax(0,1fr); }
+  .rail { display: none; }
+  .main { padding-inline: 20px; }
+  .player { grid-template-columns: minmax(0,1fr); }
+  .play-big { width: 52px; height: 52px; }
+  section { padding-block: 56px; }
+  .hero { padding-block: 44px 56px; }
+  .fact { grid-template-columns: minmax(0,1fr); gap: 4px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * { animation-duration: .001ms !important; transition-duration: .001ms !important; }
+  .cursor { animation: none; opacity: 1; }
+}
+</style>
+
+<div class="wrap">
+
+  <nav class="rail" aria-label="Sections">
+    <div class="rail-brand">voice-tts&nbsp;/&nbsp;v1.0.0</div>
+    <ul class="tracks" id="tracks"></ul>
+  </nav>
+
+  <main class="main">
+
+    <!-- ===== HERO ===== -->
+    <header class="hero" id="s-hero">
+      <div class="col">
+        <div class="eyebrow">A Claude Code plugin · Windows</div>
+        <h1>Your coding agent works in <em>total silence</em>.</h1>
+        <p class="hero-sub">
+          It writes, tests, fixes and deploys — and the only way to know it finished
+          is to keep watching the terminal. This gives it a voice, so you don't have to.
+        </p>
+
+        <div class="player">
+          <button class="play-big" id="heroPlay" data-src="audio/hero.mp3"
+                  aria-label="Play the sample line">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>
+          </button>
+          <div class="wave-box">
+            <canvas class="wave" id="heroWave" width="900" height="112"></canvas>
+            <div class="wave-cap">
+              <b id="heroCap">Press play</b> — real edge-tts output, voice en-GB-RyanNeural
+            </div>
+          </div>
+        </div>
+
+        <p class="small">
+          Every clip on this page was generated by the same <code>edge-tts</code> engine the
+          plugin ships with. Nothing here is a re-recording.
+        </p>
+      </div>
+    </header>
+
+    <!-- ===== THE PROBLEM ===== -->
+    <section id="s-silence">
+      <div class="col">
+        <div class="eyebrow">The problem</div>
+        <h2>You become the agent's progress bar.</h2>
+        <p class="lede">
+          A long task runs. You can't do anything else, because the only way to know it
+          needs you is to look. So you look. Every thirty seconds.
+        </p>
+
+        <div class="term" role="img" aria-label="A terminal showing an agent working through a long task in silence, with no audible notification">
+          <div class="term-bar">claude · ~/api-gateway</div>
+<div class="term-body"><span class="dim">›</span> fix the connection pool timeouts
+
+  <span class="dim">Read</span>   src/db/pool.py
+  <span class="dim">Read</span>   src/db/session.py
+  <span class="dim">Edit</span>   src/db/pool.py
+  <span class="dim">Bash</span>   pytest tests/ -q
+  <span class="dim">Edit</span>   tests/test_pool.py
+  <span class="dim">Bash</span>   pytest tests/ -q
+  <span class="ok">✓</span>      <span class="ok">18 passed in 2.4s</span>
+
+<span class="dim">— 4 minutes and 11 seconds of you watching this happen —</span><span class="cursor"></span></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== THE SPOKEN TAG ===== -->
+    <section id="s-spoken">
+      <div class="col">
+        <div class="eyebrow">The idea</div>
+        <h2>It reads the summary. Never the code.</h2>
+        <p class="lede">
+          Claude ends a conversational reply with one plain-prose line in a
+          <code>&lt;spoken&gt;</code> tag. The hook speaks <em>only</em> that line. Code blocks,
+          tables and file dumps get no tag at all — so they stay silent by design.
+        </p>
+        <p>Here is a real reply. Press play and watch what actually gets read:</p>
+
+        <div class="reply" id="replyCard">
+          <div class="reply-head">
+            <span>Claude · reply</span>
+            <span id="replyState">idle</span>
+          </div>
+          <div class="reply-body">
+            <p class="muffle">
+              Found it. <code>acquire()</code> wasn't returning the connection on the error
+              path, so ten failed requests drained the pool permanently.
+            </p>
+            <pre class="muffle">async def acquire(self):
+    conn = await self._pool.get()
+    try:
+        yield conn
+    finally:
+        self._pool.put_nowait(conn)  # was inside try</pre>
+            <table class="muffle">
+              <thead><tr><th>metric</th><th>before</th><th>after</th></tr></thead>
+              <tbody>
+                <tr><td>requests to failure</td><td>10</td><td>none in 10k</td></tr>
+                <tr><td>p99 latency</td><td>4,200 ms</td><td>38 ms</td></tr>
+              </tbody>
+            </table>
+
+            <div class="spoken-line" id="spokenLine">
+              <button class="play-sm" data-src="audio/silent-demo.mp3"
+                      aria-label="Play only the spoken summary">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>
+              </button>
+              <div>
+                <span class="spoken-tag">&lt;spoken&gt;</span>
+                I found the timeout. The connection pool wasn't releasing on the error
+                path. Fixed, and p99 is down to thirty-eight milliseconds.
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <p class="small">
+          The dimmed parts are what your ears are spared. A worker-side sanitiser strips
+          stray markdown as a second safety net, so backticks and asterisks never get read
+          out as words.
+        </p>
+      </div>
+    </section>
+
+    <!-- ===== PIPELINE ===== -->
+    <section id="s-pipeline">
+      <div class="col">
+        <div class="eyebrow">How it works</div>
+        <h2>Five steps, one of them kept warm.</h2>
+
+        <div class="pipe">
+          <div class="stage">
+            <div class="stage-mark"><div class="stage-line"></div><div class="stage-dot"></div></div>
+            <div>
+              <h3>SessionStart hook</h3>
+              <p>Injects the <code>&lt;spoken&gt;</code> emission rule — but only in projects
+                 where you've turned speech on — and makes sure the daemon is alive.</p>
+            </div>
+          </div>
+          <div class="stage">
+            <div class="stage-mark"><div class="stage-line"></div><div class="stage-dot"></div></div>
+            <div>
+              <h3>Claude replies</h3>
+              <p>One plain-prose line, at the very end, inside the tag. Data-shaped replies
+                 deliberately get nothing.</p>
+            </div>
+          </div>
+          <div class="stage">
+            <div class="stage-mark"><div class="stage-line"></div><div class="stage-dot"></div></div>
+            <div>
+              <h3>Stop hook · <code>hook_post.py</code></h3>
+              <p>POSTs the reply to a localhost daemon. Token-authenticated, size-bounded,
+                 and it rejects non-local file paths.</p>
+            </div>
+          </div>
+          <div class="stage">
+            <div class="stage-mark"><div class="stage-line"></div><div class="stage-dot"></div></div>
+            <div>
+              <h3>The warm daemon · <code>daemon.py</code></h3>
+              <p>Stays resident, so there's no Python, import and TLS cold-start on every
+                 reply — roughly 2–3× faster than spawning per utterance. It also serialises
+                 jobs, so two sessions never talk over each other.</p>
+            </div>
+          </div>
+          <div class="stage">
+            <div class="stage-mark"><div class="stage-line"></div><div class="stage-dot"></div></div>
+            <div>
+              <h3>Playback · Windows MCI</h3>
+              <p>Synthesised by edge-tts, played through <code>winmm.dll</code>. Cut it off
+                 mid-sentence with <code>Ctrl+Alt+S</code>.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== VOICES ===== -->
+    <section id="s-voices">
+      <div class="col">
+        <div class="eyebrow">The voices</div>
+        <h2>Switch by name, or just describe the vibe.</h2>
+        <p class="lede">
+          Say <em>"use a calmer, more British voice"</em> and the skill matches it against a
+          curated set of Microsoft neural voices. Below are 9 of the 13 it ships with —
+          press any of them.
+        </p>
+      </div>
+      <div class="voice-grid" id="voiceGrid"></div>
+      <div class="col" style="margin-top:20px">
+        <p class="small">
+          Changes apply on the next reply — no restart. Each new session also rolls a random
+          English-friendly voice, which you can pin.
+        </p>
+      </div>
+    </section>
+
+    <!-- ===== SESSION ===== -->
+    <section id="s-session">
+      <div class="col">
+        <div class="eyebrow">In practice</div>
+        <h2>What a working afternoon sounds like.</h2>
+        <p class="lede">
+          Three moments from a real session. This is the entire audible surface — everything
+          else Claude did stayed on screen, where it belongs.
+        </p>
+        <div class="clips" id="clips"></div>
+      </div>
+    </section>
+
+    <!-- ===== INSTALL ===== -->
+    <section id="s-install">
+      <div class="col">
+        <div class="eyebrow">Install</div>
+        <h2>Two commands, then it's off until you say so.</h2>
+        <div class="cmds">
+          <div class="cmd"><span class="prompt">/</span><span>plugin marketplace add MarioMagdy/give-claude-code-voice-tts</span></div>
+          <div class="cmd"><span class="prompt">/</span><span>plugin install voice-tts@give-claude-code-voice-tts</span></div>
+        </div>
+        <p>
+          It is <strong>off in every project</strong> until you opt one in. Run
+          <code>/speech</code> and choose "Turn speech on". Zero blast radius in repos you
+          didn't enable.
+        </p>
+        <div class="btn-row">
+          <a class="btn" href="https://github.com/MarioMagdy/give-claude-code-voice-tts">View on GitHub</a>
+          <a class="btn ghost" href="https://github.com/MarioMagdy/give-claude-code-voice-tts/blob/main/SECURITY.md">Read the threat model</a>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== FINE PRINT ===== -->
+    <section id="s-fineprint">
+      <div class="col">
+        <div class="eyebrow">Before you install it</div>
+        <h2>The things a landing page usually leaves out.</h2>
+        <dl class="facts">
+          <div class="fact">
+            <dt>Platform</dt>
+            <dd>Windows 10/11 only. Playback goes through MCI via <code>winmm.dll</code>.
+                Synthesis is cross-platform, so macOS and Linux need only a new playback
+                path — it's the most useful thing anyone could contribute.</dd>
+          </div>
+          <div class="fact">
+            <dt>Network</dt>
+            <dd>Synthesis is a network call. The one-line spoken summary reaches Microsoft's
+                servers. Your code, tables and file dumps never get the tag, so they never
+                leave — but don't enable speech where sending that one line is unacceptable.</dd>
+          </div>
+          <div class="fact">
+            <dt>Backend</dt>
+            <dd><code>edge-tts</code> rides the undocumented service behind Edge's Read Aloud
+                feature, not a supported public API. It can break without notice. The
+                fallbacks are already chosen and written down: swap voice, pin the version,
+                drop to Windows SAPI, or move to Piper.</dd>
+          </div>
+          <div class="fact">
+            <dt>Cost</dt>
+            <dd>None. No account, no API key, no per-character billing.</dd>
+          </div>
+        </dl>
+      </div>
+    </section>
+
+    <footer>
+      <span>MIT licensed</span>
+      <span>·</span>
+      <a href="https://github.com/MarioMagdy/give-claude-code-voice-tts">github.com/MarioMagdy/give-claude-code-voice-tts</a>
+    </footer>
+
+  </main>
+</div>
+
+<audio id="player" preload="none"></audio>
+
+<script>
+(function () {
+  "use strict";
+
+  /* ---------- data: the real curated voices, straight from hooks/voices.py ---------- */
+
+  var VOICES = [
+    ["Ava (multilingual, US)", "en-US-AvaMultilingualNeural", "Expressive female. Speaks 30+ languages including Arabic with a US-leaning accent.", "audio/voice-ava.mp3", "en"],
+    ["Emma (multilingual, US)", "en-US-EmmaMultilingualNeural", "Warm female. Multilingual; the upstream edge-tts default.", "audio/voice-emma.mp3", "en"],
+    ["Andrew (multilingual, US)", "en-US-AndrewMultilingualNeural", "Calm male. Multilingual; good for long-form listening.", "audio/voice-andrew.mp3", "en"],
+    ["Christopher (US)", "en-US-ChristopherNeural", "Neutral male, US accent. Less inflected — easy for deep work.", "audio/voice-christopher.mp3", "en"],
+    ["Ryan (UK)", "en-GB-RyanNeural", "Calm British male. Often picked as the least-robotic for long sessions.", "audio/voice-ryan.mp3", "en"],
+    ["Sonia (UK)", "en-GB-SoniaNeural", "Warm British female.", "audio/voice-sonia.mp3", "en"],
+    ["Natasha (AU)", "en-AU-NatashaNeural", "Australian female. A different register from US/UK if you want variety.", "audio/voice-natasha.mp3", "en"],
+    ["Salma (Egyptian Arabic)", "ar-EG-SalmaNeural", "Native Egyptian female. Best for colloquial Egyptian Arabic.", "audio/voice-salma.mp3", "ar"],
+    ["Hamed (MSA, Saudi)", "ar-SA-HamedNeural", "Modern Standard Arabic male. Formal.", "audio/voice-hamed.mp3", "ar"]
+  ];
+
+  var CLIPS = [
+    ["09:14", "I found it. A race condition in the connection pool. Fixed, and I added a regression test.", "audio/session-1.mp3"],
+    ["11:02", "Heads up: this migration drops the sessions table. Want me to back it up first?", "audio/session-2.mp3"],
+    ["14:37", "Deployed to production. Four minutes, no errors.", "audio/session-3.mp3"]
+  ];
+
+  var SECTIONS = [
+    ["s-hero", "Silence"],
+    ["s-silence", "The problem"],
+    ["s-spoken", "The idea"],
+    ["s-pipeline", "How it works"],
+    ["s-voices", "The voices"],
+    ["s-session", "In practice"],
+    ["s-install", "Install"],
+    ["s-fineprint", "Fine print"]
+  ];
+
+  var PLAY_ICON = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>';
+  var STOP_ICON = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 7h10v10H7z"/></svg>';
+
+  function el(tag, cls, html) {
+    var n = document.createElement(tag);
+    if (cls) n.className = cls;
+    if (html != null) n.innerHTML = html;
+    return n;
+  }
+
+  /* ---------- render voice cards ---------- */
+
+  var grid = document.getElementById("voiceGrid");
+  VOICES.forEach(function (v) {
+    var card = el("div", "voice");
+    if (v[4] === "ar") card.setAttribute("lang", "ar");
+
+    var btn = el("button", "play-sm", PLAY_ICON);
+    btn.setAttribute("data-src", v[3]);
+    btn.setAttribute("aria-label", "Play a sample of " + v[0]);
+
+    var meta = el("div");
+    meta.appendChild(el("div", "voice-name", v[0]));
+    meta.appendChild(el("div", "voice-id", v[1]));
+    meta.appendChild(el("div", "voice-desc", v[2]));
+
+    card.appendChild(btn);
+    card.appendChild(meta);
+    grid.appendChild(card);
+  });
+
+  /* ---------- render session clips ---------- */
+
+  var clipWrap = document.getElementById("clips");
+  CLIPS.forEach(function (c) {
+    var row = el("div", "clip");
+    var btn = el("button", "play-sm", PLAY_ICON);
+    btn.setAttribute("data-src", c[2]);
+    btn.setAttribute("aria-label", "Play the clip from " + c[0]);
+    var txt = el("div", "clip-txt");
+    txt.appendChild(el("span", "clip-when", c[0]));
+    txt.appendChild(document.createTextNode(c[1]));
+    row.appendChild(btn);
+    row.appendChild(txt);
+    clipWrap.appendChild(row);
+  });
+
+  /* ---------- render rail ---------- */
+
+  var tracksEl = document.getElementById("tracks");
+  var BAR_H = [5, 9, 13, 8, 11, 6];
+  SECTIONS.forEach(function (s) {
+    var li = el("li", "track");
+    li.setAttribute("data-for", s[0]);
+    var a = el("a");
+    a.href = "#" + s[0];
+    var bars = el("span", "track-bars");
+    BAR_H.forEach(function (h) {
+      var i = el("i");
+      i.style.height = h + "px";
+      bars.appendChild(i);
+    });
+    a.appendChild(bars);
+    a.appendChild(el("span", null, s[1]));
+    li.appendChild(a);
+    tracksEl.appendChild(li);
+  });
+
+  /* ---------- audio engine ---------- */
+
+  var player = document.getElementById("player");
+  var heroPlay = document.getElementById("heroPlay");
+  var heroCap = document.getElementById("heroCap");
+  var replyCard = document.getElementById("replyCard");
+  var replyState = document.getElementById("replyState");
+  var spokenLine = document.getElementById("spokenLine");
+
+  var current = null;          // the button that owns the currently-loaded audio
+  var ctx = null, analyser = null, freqData = null, rafId = 0;
+
+  function initAudioGraph() {
+    if (ctx) return;
+    var AC = window.AudioContext || window.webkitAudioContext;
+    if (!AC) return;                       // no Web Audio: playback still works, no live wave
+    try {
+      ctx = new AC();
+      var srcNode = ctx.createMediaElementSource(player);
+      analyser = ctx.createAnalyser();
+      analyser.fftSize = 128;
+      analyser.smoothingTimeConstant = 0.72;
+      freqData = new Uint8Array(analyser.frequencyBinCount);
+      srcNode.connect(analyser);
+      analyser.connect(ctx.destination);
+    } catch (e) {
+      ctx = null; analyser = null;         // fall back to static waveform
+    }
+  }
+
+  function setBtn(btn, playing) {
+    btn.setAttribute("data-playing", playing ? "1" : "0");
+    btn.innerHTML = playing ? STOP_ICON : PLAY_ICON;
+    var card = btn.closest(".voice, .clip");
+    if (card) card.setAttribute("data-playing", playing ? "1" : "0");
+  }
+
+  function clearCurrent() {
+    if (!current) return;
+    setBtn(current, false);
+    if (current === heroPlay) heroCap.textContent = "Press play";
+    if (spokenLine && spokenLine.contains(current)) {
+      spokenLine.setAttribute("data-on", "0");
+      replyCard.classList.remove("silenced");
+      replyState.textContent = "idle";
+    }
+    current = null;
+  }
+
+  function play(btn) {
+    var wasCurrent = (btn === current);
+    player.pause();
+    clearCurrent();
+    if (wasCurrent) { drawResting(); return; }   // second click = stop
+
+    initAudioGraph();
+    if (ctx && ctx.state === "suspended") ctx.resume();
+
+    current = btn;
+    player.src = btn.getAttribute("data-src");
+    player.currentTime = 0;
+
+    var p = player.play();
+    if (p && p.catch) p.catch(function () { clearCurrent(); drawResting(); });
+
+    setBtn(btn, true);
+    if (btn === heroPlay) heroCap.textContent = "Speaking";
+    if (spokenLine && spokenLine.contains(btn)) {
+      spokenLine.setAttribute("data-on", "1");
+      replyCard.classList.add("silenced");
+      replyState.textContent = "speaking the summary only";
+    }
+    startWave();
+  }
+
+  document.addEventListener("click", function (e) {
+    var btn = e.target.closest(".play-sm, .play-big");
+    if (btn) { e.preventDefault(); play(btn); }
+  });
+
+  player.addEventListener("ended", function () { clearCurrent(); drawResting(); });
+  player.addEventListener("error", function () { clearCurrent(); drawResting(); });
+
+  /* ---------- waveform ---------- */
+
+  var cv = document.getElementById("heroWave");
+  var g = cv.getContext("2d");
+
+  function css(name) {
+    return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  }
+
+  function sizeCanvas() {
+    var r = cv.getBoundingClientRect();
+    var dpr = Math.min(window.devicePixelRatio || 1, 2);
+    cv.width = Math.max(1, Math.round(r.width * dpr));
+    cv.height = Math.max(1, Math.round(r.height * dpr));
+    g.setTransform(dpr, 0, 0, dpr, 0, 0);
+    return r;
+  }
+
+  // A stable resting shape, so the page never shows an empty box.
+  var REST = (function () {
+    var a = [], i;
+    for (i = 0; i < 64; i++) {
+      a.push(0.16 + 0.5 * Math.abs(Math.sin(i * 0.55)) * Math.abs(Math.cos(i * 0.21 + 1.1)));
+    }
+    return a;
+  })();
+
+  function bars(values, color) {
+    var r = sizeCanvas();
+    var w = r.width, h = r.height;
+    g.clearRect(0, 0, w, h);
+    var n = values.length;
+    var slot = w / n;
+    var bw = Math.max(2, slot * 0.52);
+    g.fillStyle = color;
+    for (var i = 0; i < n; i++) {
+      var v = Math.max(0.04, Math.min(1, values[i]));
+      var bh = v * (h * 0.86);
+      var x = i * slot + (slot - bw) / 2;
+      var y = (h - bh) / 2;
+      var rad = Math.min(bw / 2, 2);
+      if (g.roundRect) { g.beginPath(); g.roundRect(x, y, bw, bh, rad); g.fill(); }
+      else { g.fillRect(x, y, bw, bh); }
+    }
+  }
+
+  function drawResting() {
+    cancelAnimationFrame(rafId);
+    rafId = 0;
+    bars(REST, css("--rule"));
+  }
+
+  function startWave() {
+    cancelAnimationFrame(rafId);
+    if (!analyser) {                       // no analyser — show an accent resting shape
+      bars(REST, css("--signal"));
+      return;
+    }
+    var color = css("--signal");
+    (function frame() {
+      analyser.getByteFrequencyData(freqData);
+      var vals = [], i;
+      for (i = 0; i < 64; i++) {
+        vals.push((freqData[i] || 0) / 255);
+      }
+      bars(vals, color);
+      rafId = requestAnimationFrame(frame);
+    })();
+  }
+
+  drawResting();
+  window.addEventListener("resize", function () { if (!rafId) drawResting(); });
+
+  var themeQuery = window.matchMedia("(prefers-color-scheme: dark)");
+  if (themeQuery.addEventListener) {
+    themeQuery.addEventListener("change", function () { if (!rafId) drawResting(); });
+  }
+
+  /* ---------- rail highlighting ---------- */
+
+  var trackEls = {};
+  Array.prototype.forEach.call(tracksEl.children, function (li) {
+    trackEls[li.getAttribute("data-for")] = li;
+  });
+
+  if ("IntersectionObserver" in window) {
+    var seen = {};
+    var io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (en) { seen[en.target.id] = en.intersectionRatio; });
+      var best = null, bestV = -1;
+      SECTIONS.forEach(function (s) {
+        var v = seen[s[0]] || 0;
+        if (v > bestV) { bestV = v; best = s[0]; }
+      });
+      SECTIONS.forEach(function (s) {
+        if (trackEls[s[0]]) trackEls[s[0]].setAttribute("data-on", s[0] === best && bestV > 0 ? "1" : "0");
+      });
+    }, { threshold: [0, 0.15, 0.4, 0.75, 1] });
+
+    SECTIONS.forEach(function (s) {
+      var node = document.getElementById(s[0]);
+      if (node) io.observe(node);
+    });
+  } else if (trackEls["s-hero"]) {
+    trackEls["s-hero"].setAttribute("data-on", "1");
+  }
+})();
+</script>
