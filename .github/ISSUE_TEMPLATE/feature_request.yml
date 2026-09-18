@@ -1,0 +1,30 @@
+name: Feature request
+description: Suggest an improvement or new capability
+labels: ["enhancement"]
+body:
+  - type: dropdown
+    attributes:
+      label: Area
+      options:
+        - Voices (catalogue, matching/vibe, previews)
+        - Hooks / daemon
+        - The speech skill (/speech, control surface)
+        - Platform support (macOS/Linux)
+        - Docs
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: What would you like to see?
+      description: What's missing or could be better?
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: Why
+      description: What's the use case, or what does this unblock?
+    validations:
+      required: false

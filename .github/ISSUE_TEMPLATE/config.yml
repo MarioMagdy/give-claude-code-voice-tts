@@ -1,0 +1,7 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Report a security vulnerability
+    url: https://github.com/MarioMagdy/give-claude-code-voice-tts/security
+    about: >
+      Please don't file security issues publicly. Use this repository's Security
+      tab to report a vulnerability privately.
