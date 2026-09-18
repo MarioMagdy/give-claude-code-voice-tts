@@ -5,15 +5,25 @@
 > each reply aloud, with a **`speech` skill** to switch voices, mute, and interrupt. Off by default,
 > opt-in per project.
 
+[![CI](https://github.com/MarioMagdy/give-claude-code-voice-tts/actions/workflows/ci.yml/badge.svg)](https://github.com/MarioMagdy/give-claude-code-voice-tts/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Claude Code Plugin](https://img.shields.io/badge/Claude%20Code-plugin-7c3aed.svg)](https://code.claude.com/docs/en/plugins)
 [![Platform: Windows](https://img.shields.io/badge/platform-Windows-0078d6.svg)](#requirements)
 
-**Last verified:** June 2026.
+**Last verified:** v1.0.0, June 2026 — manually run end to end against Claude Code on Windows 11.
+The code hasn't changed since, and it hasn't been re-checked against newer Claude Code or
+`edge-tts` releases.
 
 Claude ends conversational replies with a one-line `<spoken>…</spoken>` summary; the hook speaks
 **just that** — never your code, tables, or file dumps. TTS is free neural **edge-tts** (Microsoft
 Edge voices); there's no cloud account, no API key, and no per-character billing.
+
+## Demo
+
+Speech is easier to judge with your ears than from a README — here's a short recording of a session
+with it enabled.
+
+<!-- DEMO_EMBED -->
 
 ## Install
 
@@ -55,6 +65,20 @@ Trigger phrases: *"make Claude talk"*, *"turn on TTS"*, *"give Claude a voice"*,
 The daemon is **localhost-only and token-authenticated** (the token lives in a gitignored
 `daemon.state`), bounds request size, and rejects non-local file paths.
 
+### About the TTS backend
+
+`edge-tts` speaks to the undocumented service behind Microsoft Edge's Read Aloud feature — not a
+supported public API. That's exactly why it's free and account-less, and it also means the endpoint
+can change or stop answering without notice. Synthesis is therefore a network call: the short
+`<spoken>` summary of each reply is sent to Microsoft's servers. Your code, tables, and file dumps
+are not — they never get a `<spoken>` tag in the first place. [SECURITY.md](SECURITY.md) has the
+full data path.
+
+If the endpoint does break, the fallbacks are already chosen rather than improvised: swap to a
+different voice, pin a known-good `edge-tts` version, or move synthesis to Windows SAPI (offline,
+built in) or Piper (offline neural). Steps for each are in [CONTINGENCIES.md](CONTINGENCIES.md),
+section C1.
+
 ## Control — the `speech` skill
 
 Say things, or use the menu (`/speech`):
@@ -81,7 +105,8 @@ plus Arabic options). Changes apply on the next reply — no restart.
 
 - **Windows 10/11** (playback uses MCI via `winmm.dll`)
 - **Python 3.10+** on PATH (with `pythonw.exe`)
-- `pip install edge-tts` (free neural TTS; no account)
+- `pip install edge-tts` (free neural TTS; no account — synthesis is a network call, so it needs an
+  internet connection)
 - Optional: `pip install keyboard` for the `Ctrl+Alt+S` global interrupt hotkey
 
 ## FAQ
@@ -91,6 +116,17 @@ A Claude Code plugin that gives Claude Code text-to-speech on Windows: a Stop ho
 
 **Does this require an API key or a paid TTS service?**
 No. It uses `edge-tts` (Microsoft Edge's neural voices), which is free. No account, no API key.
+
+**Is `edge-tts` an official Microsoft API? Could it break?**
+It's the undocumented backend behind Edge's Read Aloud feature, not a supported public API, so yes
+— it can change or stop answering without notice. The fallbacks are pre-decided: different voice,
+pinned `edge-tts` version, or switching synthesis to Windows SAPI or Piper (both offline). See
+[CONTINGENCIES.md](CONTINGENCIES.md), section C1.
+
+**Does any of my text leave my machine?**
+Yes — the one-line `<spoken>` summary is sent to Microsoft's servers to be synthesised. Nothing
+else is: code, tables, and file dumps are never given a `<spoken>` tag, and the daemon itself only
+listens on localhost. [SECURITY.md](SECURITY.md) spells out the data path.
 
 **Does it work on macOS or Linux?**
 Not yet — playback is Windows-only (MCI/`winmm.dll`). macOS/Linux support is a possible future
@@ -139,6 +175,13 @@ hooks/
 skills/speech/SKILL.md         ← the voice-control skill
 CONTINGENCIES.md               ← pre-decided fallbacks for known failure modes
 ```
+
+## Project docs
+
+- [CONTINGENCIES.md](CONTINGENCIES.md) — pre-decided fallbacks for known failure modes
+- [SECURITY.md](SECURITY.md) — what data goes where, and how to report a vulnerability
+- [CONTRIBUTING.md](CONTRIBUTING.md) — how to set up, test, and send a change
+- [CHANGELOG.md](CHANGELOG.md) — what changed between releases
 
 ## License
 
